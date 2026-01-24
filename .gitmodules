@@ -1,0 +1,11 @@
+[submodule "FlightOnTime"]
+	path = FlightOnTime
+	url = https://github.com/JaimeValleZ/FlightOnTime.git
+	branch = docker
+[submodule "FlightOnTime-FrontEnd"]
+	path = FlightOnTime-FrontEnd
+	url = https://github.com/JaimeValleZ/FlightOnTime-FrontEnd.git
+	branch = docker
+[submodule "microServicioML"]
+	path = microServicioML
+	url = https://github.com/GP-Core/microServicioML.git
