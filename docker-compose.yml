@@ -1,0 +1,110 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: flight-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  config-server:
+    build:
+      context: ./FlightOnTime
+      dockerfile: config-server/Dockerfile
+    container_name: flight-config-server
+    ports:
+      - "8888:8888"
+    environment:
+      SERVER_PORT: 8888
+    depends_on:
+      - mysql
+
+  eureka:
+    build:
+      context: ./FlightOnTime
+      dockerfile: eureka/Dockerfile
+    container_name: flight-eureka
+    ports:
+      - "8761:8761"
+    environment:
+      SERVER_PORT: 8761
+      EUREKA_INSTANCE_HOSTNAME: eureka
+    depends_on:
+      - config-server
+
+  flight-prediction:
+    build:
+      context: ./FlightOnTime
+      dockerfile: flight-prediction/Dockerfile
+    container_name: flight-prediction
+    environment:
+      SERVER_PORT: 8090
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_NAME}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: flight-prediction
+      # --- API KEYS DESDE EL .ENV ---
+      AIRLABS_API_KEY: ${AIRLABS_API_KEY}   # <--- AGREGADO: Lee del .env
+      WEATHER_API_KEY: ${WEATHER_API_KEY}   # <--- AGREGADO: Lee del .env
+    ports:
+      - "8090:8090"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      eureka:
+        condition: service_started
+
+  gateway:
+    build:
+      context: ./FlightOnTime
+      dockerfile: gateway/Dockerfile
+    container_name: flight-gateway
+    environment:
+      SERVER_PORT: 8080
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - eureka
+      - flight-prediction
+
+  ml-service:
+    build:
+      context: ./microServicioML
+      dockerfile: Dockerfile
+    container_name: flight-ml
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./FlightOnTime-FrontEnd
+      dockerfile: Dockerfile
+    container_name: flight-frontend
+    ports:
+      - "4200:4200"
+    depends_on:
+      - gateway
+
+volumes:
+  mysql_data:
+
+networks:
+  default:
+    name: flight-network
