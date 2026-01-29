@@ -241,4 +241,10 @@ Si te resulta útil, considera:
 
 ---
 
+## Diagrama de flujo
+![WhatsApp Image 2026-01-28 at 2 34 01 PM](https://github.com/user-attachments/assets/b22b1b75-2e31-42f5-80b5-e8de0c21aaec)
+
+
+
 **Hecho con ❤️ por el equipo de GoFly**
+
